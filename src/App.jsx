@@ -10,23 +10,26 @@ import Map from './pages/Bexruz/Map'
 import Rating from './pages/Bexruz/Rating'
 import StationDetail from './pages/Bexruz/StationDetail'
 import UserProfile from './pages/Bexruz/UserProfile'
+import { AuthProvider } from './AuthContext'
 
 const App = () => {
   return (
-    <div className='bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
-      <Header />
-      <Routes>
-        <Route path='/' element={<Home />} />
-        <Route path='/my-turn' element={<MyTurn />} />
-        <Route path='/registration' element={<Registration />} />
-        <Route path='/station-owner' element={<StationOwner />} />
-        <Route path='/map' element={<Map />} />
-        <Route path='/rating' element={<Rating />} />
-        <Route path='/station-detail' element={<StationDetail />} />
-        <Route path='/user-profile' element={<UserProfile />} />
-      </Routes>
-      <Footer />
-    </div>
+    <AuthProvider>
+      <div className='bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
+        <Header />
+        <Routes>
+          <Route path='/' element={<Home />} />
+          <Route path='/my-turn' element={<MyTurn />} />
+          <Route path='/registration' element={<Registration />} />
+          <Route path='/station-dashboard' element={<StationOwner />} />
+          <Route path='/profile' element={<UserProfile />} />
+          <Route path='/map' element={<Map />} />
+          <Route path='/rating' element={<Rating />} />
+          <Route path='/station-detail' element={<StationDetail />} />
+        </Routes>
+        <Footer />
+      </div>
+    </AuthProvider>
   )
 }
 
