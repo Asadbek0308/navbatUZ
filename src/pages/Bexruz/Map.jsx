@@ -7,6 +7,9 @@ import { useNavigate } from "react-router-dom"; // Router orqali sahifalararo o'
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
+import AccessGuard from "../../components/AccessGuard";
+import { useAuth } from "../../AuthContext";
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
@@ -53,7 +56,8 @@ style.innerHTML = `
 document.head.appendChild(style);
 
 export default function Map() {
-  const navigate = useNavigate(); // Navigate hooki e'lon qilindi
+  // Agar React Router bo'lsa, navigate-ni e'lon qiling:
+  // const navigate = useNavigate(); 
 
   const [stations, setStations] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -95,7 +99,16 @@ export default function Map() {
     }
   }, []);
 
+  // Only fetch stations once we know the user is an authorized driver
   useEffect(() => {
+    if (!isAuthorized) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
     const fetchStations = async () => {
       try {
         const query = `[out:json];(node["amenity"="fuel"](41.20,69.10,41.40,69.40););out;`;
@@ -107,48 +120,28 @@ export default function Map() {
           lat: item.lat,
           lng: item.lon,
         }));
-        setStations(list);
+        if (!cancelled) setStations(list);
       } catch (err) {
         console.log("Fetch error:", err);
       } finally {
-        if (loading) setLoading(false);
+        loading && setLoading(false);
       }
     };
+
     fetchStations();
-  }, [loading]);
+  }, []);
 
-  const handleBooking = () => {
-    if (!fuelType || !volumeType || !carName.trim()) return;
-
-    const now = new Date();
-    const oneLiterPrice = getFuelPrices(selected.id)[fuelType];
-
-    // Hajm turiga qarab raqamni hisoblash (Mening navbatim sahifasi uchun)
-    let finalVolume = "O'zim aytaman";
-    if (volumeType === "full") finalVolume = "45 L"; // To'la bak uchun shartli ravishda 45 litr
-    if (volumeType === "30l") finalVolume = "30 L";
-
-    const bookingData = {
-      stationName: selected.name,
-      fuel: fuelType.toUpperCase(),
-      volumeType: volumeType, // "full", "30l", "custom"
-      volume: finalVolume,
-      price: oneLiterPrice, // 1 litrning narxi (Mening navbatim sahifasida ko'paytirib olinadi)
-      carName: carName.trim(), // Mashina nomi saqlandi
-      bookedAt: now.getTime(),
-    };
-
-    localStorage.setItem("myBooking", JSON.stringify(bookingData));
-    navigate("/my-turn"); // "Mening navbatim" sahifasiga xavfsiz o'tish
+const handleBooking = () => {
+  const now = new Date();
+  const bookingData = {
+    stationName: selected.name,
+    fuel: fuelType.toUpperCase(),
+    price: getFuelPrices(selected.id)[fuelType],
+    bookedAt: now.getTime(), // Band qilingan aniq vaqt (millisekundda)
   };
-
-  // Ma'lumotlarni tozalash (Orqaga bosganda)
-  const handleReset = () => {
-    setSelected(null);
-    setFuelType(null);
-    setVolumeType(null);
-    setCarName("");
-  };
+  localStorage.setItem("myBooking", JSON.stringify(bookingData));
+  window.location.href = "/my-turn"; 
+};
 
   if (loading) {
     return (
@@ -167,16 +160,6 @@ export default function Map() {
       <div className="flex-1">
         <MapContainer center={[41.3111, 69.2797]} zoom={12} className="h-full w-full">
           <TileLayer attribution="OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          
-          {/* --- YANGI: Foydalanuvchi joylashuvi mutlaqo boshqacha markerda chiqadi --- */}
-          {userLocation && (
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={customUserIcon}>
-              <Popup>
-                <div className="text-center font-semibold text-blue-500">Sizning joylashuvingiz 🔵</div>
-              </Popup>
-            </Marker>
-          )}
-
           {stations.map((station) => (
             <Marker
               key={station.id}
@@ -185,8 +168,6 @@ export default function Map() {
                 click: () => {
                   setSelected(station);
                   setFuelType(null);
-                  setVolumeType(null);
-                  setCarName("");
                 },
               }}
             >
@@ -205,24 +186,21 @@ export default function Map() {
             <p className="mt-2 text-slate-400">Xaritadagi marker ustiga bosing.</p>
           </div>
         ) : (
-          <div className="h-full text-white space-y-6">
+          <div className="h-full text-white">
             {/* HEADER */}
-            <div className="border-b border-slate-800 pb-4">
+            <div className="mb-5 border-b border-slate-800 pb-4">
               <h2 className="text-2xl font-bold">{selected.name}</h2>
               <p className="text-sm text-slate-400">ID: {selected.id}</p>
             </div>
 
             {/* FUEL SELECT */}
-            <div>
+            <div className="mb-5">
               <h3 className="mb-2 text-lg font-semibold text-blue-400">Yoqilg‘ini tanlang</h3>
               <div className="grid grid-cols-2 gap-2">
                 {Object.keys(getFuelPrices(selected.id)).map((type) => (
                   <button
                     key={type}
-                    onClick={() => {
-                      setFuelType(type);
-                      setVolumeType(null); // Yoqilg'i almashganda keyingi bosqichlarni qayta tiklash
-                    }}
+                    onClick={() => setFuelType(type)}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       fuelType === type ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"
                     }`}
@@ -233,86 +211,37 @@ export default function Map() {
               </div>
             </div>
 
-            {/* --- YANGI BOSQICH: HAJM BUTTONLARI --- */}
-            {fuelType && (
-              <div className="space-y-2 animate-fade-in">
-                <h3 className="text-lg font-semibold text-blue-400">Hajmini tanlang</h3>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => setVolumeType("full")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-bold transition ${
-                      volumeType === "full" ? "bg-orange-600 text-white" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                    }`}
-                  >
-                    🚀 To‘la bak
-                  </button>
-                  <button
-                    onClick={() => setVolumeType("30l")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-bold transition ${
-                      volumeType === "30l" ? "bg-orange-600 text-white" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                    }`}
-                  >
-                    💧 30 Litr
-                  </button>
-                  <button
-                    onClick={() => setVolumeType("custom")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-bold transition ${
-                      volumeType === "custom" ? "bg-orange-600 text-white" : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                    }`}
-                  >
-                    💬 O‘zim borib aytaman
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* --- YANGI BOSQICH: MASHINA NOMINI KIRITISH --- */}
-            {fuelType && volumeType && (
-              <div className="space-y-2 animate-fade-in">
-                <h3 className="text-lg font-semibold text-blue-400">Mashinangiz modeli</h3>
-                <input
-                  type="text"
-                  placeholder="Masalan: Cobalt, Gentra, BYD..."
-                  value={carName}
-                  onChange={(e) => setCarName(e.target.value)}
-                  className="w-full rounded-lg bg-slate-900 border border-slate-700 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            )}
-
             {/* PRICES */}
-            <div className="space-y-2 pt-2">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Ma'lumot uchun narxlar</h3>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-blue-400">Narxlar</h3>
               {Object.entries(getFuelPrices(selected.id)).map(([key, value]) => (
-                <div key={key} className="flex justify-between rounded-lg bg-slate-900/50 px-4 py-1.5 text-xs">
-                  <span className="uppercase text-slate-400">{key}</span>
-                  <span className="text-slate-300">{value.toLocaleString()} so‘m</span>
+                <div key={key} className="flex justify-between rounded-lg bg-slate-900 px-4 py-2">
+                  <span className="uppercase text-slate-300">{key}</span>
+                  <span>{value.toLocaleString()} so‘m</span>
                 </div>
               ))}
             </div>
 
-            {/* BOOK BUTTON & BACK */}
-            <div className="pt-4 space-y-2">
-              {/* Shart: yoqilg'i, hajm va mashina nomi kiritilgandagina aktiv bo'ladi */}
-              <button
-                disabled={!fuelType || !volumeType || !carName.trim()}
-                onClick={handleBooking}
-                className={`w-full rounded-lg py-3 font-bold transition shadow-lg ${
-                  fuelType && volumeType && carName.trim()
-                    ? "bg-green-600 hover:bg-green-700 text-white active:scale-95"
-                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
-                }`}
-              >
-                🔒 Joy band qilish
-              </button>
+            {/* BOOK BUTTON */}
+            <button
+              disabled={!fuelType}
+              onClick={handleBooking}
+              className={`mt-5 w-full rounded-lg py-2 font-semibold transition ${
+                fuelType ? "bg-green-600 hover:bg-green-700 text-white" : "bg-slate-700 text-slate-400 cursor-not-allowed"
+              }`}
+            >
+              Joy band qilish
+            </button>
 
-              <button
-                onClick={handleReset}
-                className="w-full rounded-lg bg-slate-900 border border-slate-800 py-2.5 font-semibold text-slate-400 hover:bg-slate-800 transition"
-              >
-                ⬅️ Orqaga
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setSelected(null);
+                setFuelType(null);
+              }}
+              className="mt-6 w-full rounded-lg bg-blue-600 py-2 font-semibold hover:bg-blue-700"
+            >
+              Orqaga
+            </button>
           </div>
         )}
       </div>

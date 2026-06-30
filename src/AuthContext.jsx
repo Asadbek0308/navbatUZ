@@ -1,9 +1,26 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Lazy init: read from localStorage once, synchronously, before first render
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("navbatuz_user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Keep localStorage in sync whenever user changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("navbatuz_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("navbatuz_user");
+    }
+  }, [user]);
 
   const login = (userData) => setUser(userData);
   const logout = () => setUser(null);
