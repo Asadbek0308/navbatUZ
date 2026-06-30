@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-// Agar React Router ishlatayotgan bo'lsangiz, quyidagi qatorni yoqing:
-// import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 import AccessGuard from "../../components/AccessGuard";
 import { useAuth } from "../../AuthContext";
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
@@ -21,6 +21,34 @@ L.Icon.Default.mergeOptions({
   shadowSize: [41, 41],
 });
 
+const customUserIcon = L.divIcon({
+  className: "custom-user-marker",
+  html: `<div style="
+    position: relative;
+    width: 20px;
+    height: 20px;
+    background-color: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  ">
+    <div style="
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      animation: pulse 1.8s infinite ease-in-out;
+      opacity: 0.6;
+      z-index: -1;
+    "></div>
+  </div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
+
 export default function Map() {
   const { user } = useAuth();
   const isAuthorized = !!user && user.role === "haydovchi";
@@ -29,6 +57,10 @@ export default function Map() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fuelType, setFuelType] = useState(null);
+
+  const [volumeType, setVolumeType] = useState(null);
+  const [carName, setCarName] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
 
   const getFuelPrices = (id) => {
     const seed = Number(id);
@@ -40,6 +72,36 @@ export default function Map() {
       diesel: 11400 + (seed % 700),
     };
   };
+
+  // Inject the pulse-animation keyframes once
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 0.6; }
+        100% { transform: scale(3); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
+  // Get user geolocation
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log("Geolokatsiyani olishda xatolik:", error);
+        }
+      );
+    }
+  }, []);
 
   // Only fetch stations once we know the user is an authorized driver
   useEffect(() => {
@@ -82,14 +144,12 @@ export default function Map() {
       stationName: selected.name,
       fuel: fuelType.toUpperCase(),
       price: getFuelPrices(selected.id)[fuelType],
-      bookedAt: now.getTime(), // Band qilingan aniq vaqt (millisekundda)
+      bookedAt: now.getTime(),
     };
     localStorage.setItem("myBooking", JSON.stringify(bookingData));
     window.location.href = "/my-turn";
   };
 
-  // Guard check happens BEFORE the loading screen, so unauthorized
-  // users never see the spinner and never trigger the Overpass fetch.
   if (!isAuthorized) {
     return <AccessGuard><></></AccessGuard>;
   }
@@ -112,6 +172,11 @@ export default function Map() {
         <div className="flex-1">
           <MapContainer center={[41.3111, 69.2797]} zoom={12} className="h-full w-full">
             <TileLayer attribution="OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            {userLocation && (
+              <Marker position={[userLocation.lat, userLocation.lng]} icon={customUserIcon}>
+                <Popup>Siz shu yerdasiz</Popup>
+              </Marker>
+            )}
             {stations.map((station) => (
               <Marker
                 key={station.id}
@@ -130,7 +195,7 @@ export default function Map() {
         </div>
 
         {/* SIDEBAR */}
-        <div className="w-[380px] overflow-y-auto border-l border-slate-800 bg-slate-950 p-5">
+        <div className="w-95 overflow-y-auto border-l border-slate-800 bg-slate-950 p-5">
           {!selected ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="text-7xl">⛽</div>
@@ -139,13 +204,11 @@ export default function Map() {
             </div>
           ) : (
             <div className="h-full text-white">
-              {/* HEADER */}
               <div className="mb-5 border-b border-slate-800 pb-4">
                 <h2 className="text-2xl font-bold">{selected.name}</h2>
                 <p className="text-sm text-slate-400">ID: {selected.id}</p>
               </div>
 
-              {/* FUEL SELECT */}
               <div className="mb-5">
                 <h3 className="mb-2 text-lg font-semibold text-blue-400">Yoqilg‘ini tanlang</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -153,8 +216,9 @@ export default function Map() {
                     <button
                       key={type}
                       onClick={() => setFuelType(type)}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${fuelType === type ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"
-                        }`}
+                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                        fuelType === type ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"
+                      }`}
                     >
                       {type.toUpperCase()}
                     </button>
@@ -162,7 +226,6 @@ export default function Map() {
                 </div>
               </div>
 
-              {/* PRICES */}
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-blue-400">Narxlar</h3>
                 {Object.entries(getFuelPrices(selected.id)).map(([key, value]) => (
@@ -173,12 +236,12 @@ export default function Map() {
                 ))}
               </div>
 
-              {/* BOOK BUTTON */}
               <button
                 disabled={!fuelType}
                 onClick={handleBooking}
-                className={`mt-5 w-full rounded-lg py-2 font-semibold transition ${fuelType ? "bg-green-600 hover:bg-green-700 text-white" : "bg-slate-700 text-slate-400 cursor-not-allowed"
-                  }`}
+                className={`mt-5 w-full rounded-lg py-2 font-semibold transition ${
+                  fuelType ? "bg-green-600 hover:bg-green-700 text-white" : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                }`}
               >
                 Joy band qilish
               </button>
@@ -198,4 +261,4 @@ export default function Map() {
       </div>
     </AccessGuard>
   );
-}
+} 

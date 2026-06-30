@@ -1,64 +1,57 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { Link } from "react-router-dom"
 import AccessGuard from "../../components/AccessGuard";
 
 export default function MyTurn() {
+  // --- STATES ---
   const [activeBooking, setActiveBooking] = useState(null);
   const [history, setHistory] = useState([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
 
-  // Evakuator uchun shtatlar
+  // Modallar va Sahifachalar uchun holatlar
   const [selectedEvakuator, setSelectedEvakuator] = useState(null);
+  const [comingSoonPage, setComingSoonPage] = useState(null);
 
-  // Dinamik navbat shtatlari
+  // To'lov tizimi shtatlari
+  const [walletBalance, setWalletBalance] = useState(450000);
+  const [cards, setCards] = useState([
+    { id: 1, type: "HUMO", number: "**** **** **** 2415", name: "JONIBEK A." },
+    { id: 2, type: "UZCARD", number: "**** **** **** 8600", name: "JONIBEK A." }
+  ]);
+
+  // Dinamik navbat va taymer shtatlari
   const [peopleAhead, setPeopleAhead] = useState(12);
   const [timeLeft, setTimeLeft] = useState("");
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [targetTimeStr, setTargetTimeStr] = useState("");
 
-  // Evakuatorlar ro'yxati (5 ta)
+  // --- DATA: EVAKUATORLAR (Asl holatiga qaytarildi) ---
   const evakuatorlar = [
     {
-      id: 1,
-      driver: "Jasur Ahmatov",
-      car: "Hyundai Mighty (Sariq)",
-      carNumber: "01 | A 777 BB",
-      phone: "+998 (90) 123-45-67",
-      image: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=300&q=80",
-      experience: "5 yil",
-      description: "Toshkent shahar bo‘ylab 24/7 tezkor xizmat. Har qanday yengil avtomobil va jip variantlarini xavfsiz yuklash va tashish kafolatlanadi."
+      id: 1, driver: "Jasur Ahmatov", car: "Hyundai Mighty", carNumber: "01 | A 777 BB",
+      phone: "+998 (90) 123-45-67", experience: "5 yil",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/3lpi1gfjm0uq1-UZ/image",
+      description: "Toshkent shahar bo'ylab 24/7 xizmat. Xavfsiz yuklash kafolatlanadi."
     },
     {
-      id: 2,
-      driver: "Sardor Olimov",
-      car: "Isuzu NPR82 (Oq)",
-      carNumber: "01 | Z 999 ZZ",
-      phone: "+998 (93) 987-65-43",
-      image: "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?auto=format&fit=crop&w=300&q=80",
-      experience: "7 yil",
-      description: "Og‘ir vazndagi mikroavtobus va krossoverlarni ham tashiydi. Maxsus gidravlik platformaga ega."
+      id: 2, driver: "Sardor Olimov", car: "Isuzu NPR82", carNumber: "01 | Z 999 ZZ",
+      phone: "+998 (93) 987-65-43", experience: "7 yil",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/dsq25661rzp5-UZ/image",
+      description: "Og'ir vazndagi texnikalarni tashish uchun maxsus gidravlik platforma."
     },
     {
-      id: 3,
-      driver: "Farruhbek Karimov",
-      car: "Gazelle Next (Ko‘k)",
-      carNumber: "10 | X 555 OA",
-      phone: "+998 (99) 444-33-22",
-      image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=300&q=80",
-      experience: "3 yil",
-      description: "Arzon va qulay narxlarda shahar ichi va viloyatga chiqish xizmati. Shuningdek, g‘ildirak qulflanib qolgan holatlarda ham yordam beradi."
+      id: 3, driver: "Farruh Karimov", car: "Gazelle Next", carNumber: "10 | X 555 OA",
+      phone: "+998 (99) 444-33-22", experience: "3 yil",
+      image: "https://cdn-img.birbir.uz/i/400x400-fit/files/c4/ba/5853b901d02e886a6fd3d5c8c9d8.jpg",
+      description: "Hamyonbop narxlarda shahar ichi va viloyatga chiqish xizmati."
     },
     {
-      id: 4,
-      driver: "Doston To‘rayev",
-      car: "Mercedes-Benz Atego",
-      carNumber: "01 | M 010 AM",
-      phone: "+998 (95) 770-11-22",
-      image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=300&q=80",
-      experience: "10 yil",
-      description: "Professional darajadagi uzun platformali evakuator. Sport Karlar va past osilgan (lowrider) mashinalarni beziyon yuklaydi."
+      id: 4, driver: "Doston To'rayev", car: "Mercedes Atego", carNumber: "01 | M 010 AM",
+      phone: "+998 (95) 770-11-22", experience: "10 yil",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/9j66qa8lxojh1-UZ/image;s=750x1000",
+      description: "Sport karlar va past klirensli mashinalar uchun professional yordam."
     },
     {
       id: 5,
@@ -106,11 +99,10 @@ export default function MyTurn() {
       const booking = JSON.parse(savedBooking);
       setActiveBooking(booking);
 
-      // Foydalanuvchi chiqib ketsa ham vaqt o'zgarmasligi uchun targetTime xotiradan tekshiriladi
       let targetTime = localStorage.getItem("myBookingTargetTime");
       if (!targetTime) {
-        const durationMin = 30; // 30 daqiqalik taymer
-        targetTime = (booking.bookedAt || Date.now()) + durationMin * 60 * 1000;
+        const durationMin = 30;
+        targetTime = Date.now() + durationMin * 60 * 1000;
         localStorage.setItem("myBookingTargetTime", targetTime);
       } else {
         targetTime = Number(targetTime);
@@ -123,25 +115,19 @@ export default function MyTurn() {
         const now = Date.now();
         const difference = targetTime - now;
 
-        // Odamlar soni vaqtga mutanosib ravishda kamayadi
         const bookedTime = booking.bookedAt || (targetTime - 30 * 60 * 1000);
         const minutesElapsed = Math.floor((now - bookedTime) / (60 * 1000));
-        const currentPeople = Math.max(12 - Math.floor(minutesElapsed / 2), 0);
+        const currentPeople = Math.max(12 - Math.floor(minutesElapsed / 2.5), 0);
         setPeopleAhead(currentPeople);
 
-        if (difference <= 0 || currentPeople === 0) {
+        if (difference <= 0) {
           clearInterval(interval);
           setTimeLeft("00:00");
           setIsTimeUp(true);
         } else {
-          const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-          const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-          setTimeLeft(`${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`);
-
-          // Toppa-to'g'ri 5 daqiqa (yoki undan kamroq) qolganda SMS yuborish mantiqi triggering
-          if (minutes === 5 && seconds === 0) {
-            sendReminderSMS(booking.stationName);
-          }
+          const m = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+          const s = Math.floor((difference % (1000 * 60)) / 1000);
+          setTimeLeft(`${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`);
         }
       }, 1000);
 
@@ -149,16 +135,27 @@ export default function MyTurn() {
     }
   }, []);
 
+  // --- LOGIC: FINISH ACTION ---
   const handleFinalAction = (statusText) => {
     if (!activeBooking) return;
 
+    let finalVolume = activeBooking.volume;
+    let totalPrice = 0;
+    const oneLiterPrice = activeBooking.price || 0;
+
+    if (statusText === "BAJARILDI") {
+      if (activeBooking.volumeType === "full") totalPrice = 45 * oneLiterPrice;
+      else if (activeBooking.volumeType === "30l") totalPrice = 30 * oneLiterPrice;
+    }
+
     const newTx = {
       id: Date.now(),
-      date: new Date().toLocaleDateString("en-US", { day: 'numeric', month: 'short', year: 'numeric' }),
+      date: new Date().toLocaleDateString("uz-UZ"),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       fuel: activeBooking.fuel,
-      volume: statusText === "BAJARILDI" ? "45 L" : "0 L",
-      price: activeBooking.price,
+      carName: activeBooking.carName || "Noma'lum",
+      volume: finalVolume,
+      price: totalPrice,
       status: statusText
     };
 
@@ -169,9 +166,16 @@ export default function MyTurn() {
     // Barcha vaqtinchalik xotiralarni tozalash
     localStorage.removeItem("myBooking");
     localStorage.removeItem("myBookingTargetTime");
-    localStorage.removeItem("smsSent_5min"); // SMS holatini ham tozalash
     setActiveBooking(null);
     setIsTimeUp(false);
+  };
+
+  const getLivePriceDisplay = () => {
+    if (!activeBooking) return "0 UZS";
+    const base = activeBooking.price || 0;
+    if (activeBooking.volumeType === "full") return `${(45 * base).toLocaleString()} UZS`;
+    if (activeBooking.volumeType === "30l") return `${(30 * base).toLocaleString()} UZS`;
+    return "Joyida aniqlanadi";
   };
 
   const displayedHistory = showAllHistory ? history : history.slice(0, 5);
@@ -251,9 +255,9 @@ export default function MyTurn() {
                   </div>
                 )
               ) : (
-                <Link to="/map" className="mt-6 w-full text-center rounded-xl bg-white py-3 font-semibold text-blue-700 hover:bg-blue-50">
+                <a href="/" className="mt-6 w-full text-center rounded-xl bg-white py-3 font-semibold text-blue-700 hover:bg-blue-50">
                   Xaritaga o'tish
-                </Link>
+                </a>
               )}
             </div>
 
