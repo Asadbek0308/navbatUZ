@@ -72,8 +72,8 @@ export default function Home() {
         <section className="relative overflow-hidden pt-20 pb-32 px-8">
           {/* subtle background blob */}
           <div
-            className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.06] pointer-events-none"
-            style={{ background: "#00317E" }}
+            className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.06] pointer-events-none bg-[#00317E] dark:bg-white"
+            style={{ background: "#" }}
           />
           <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
             {/* Left copy */}

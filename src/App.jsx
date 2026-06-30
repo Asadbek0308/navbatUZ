@@ -11,6 +11,7 @@ import Rating from './pages/Bexruz/Rating'
 import StationDetail from './pages/Bexruz/StationDetail'
 import UserProfile from './pages/Bexruz/UserProfile'
 import { AuthProvider } from './AuthContext'
+import NotFound from './pages/Asadbek/NotFound'
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
           <Route path='/map' element={<Map />} />
           <Route path='/rating' element={<Rating />} />
           <Route path='/station-detail' element={<StationDetail />} />
+          <Route path='*' element={<NotFound />} />
         </Routes>
         <Footer />
       </div>
