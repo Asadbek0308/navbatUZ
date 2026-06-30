@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 // Agar React Router ishlatayotgan bo'lsangiz, quyidagi qatorni yoqing:
 // import { useNavigate } from "react-router-dom"; 
 
@@ -10,11 +10,15 @@ import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 import AccessGuard from "../../components/AccessGuard";
 import { useAuth } from "../../AuthContext";
-
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon,
   shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
 });
 
 export default function Map() {
