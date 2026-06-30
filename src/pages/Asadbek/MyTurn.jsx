@@ -18,6 +18,19 @@ export default function MyTurn() {
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [targetTimeStr, setTargetTimeStr] = useState("");
 
+  // --- YANGI: Jami summani hisoblash funksiyasi ---
+  const calculateTotalSum = (booking) => {
+    if (!booking) return 0;
+    const pricePerLiter = booking.price || 0;
+    
+    if (booking.volume === "45 L") {
+      return pricePerLiter * 45;
+    } else if (booking.volume === "30 L") {
+      return pricePerLiter * 30;
+    }
+    return null; // "O'zim aytaman" holati uchun
+  };
+
   // Evakuatorlar ro'yxati (5 ta)
   const evakuatorlar = [
     {
@@ -26,7 +39,7 @@ export default function MyTurn() {
       car: "Hyundai Mighty (Sariq)",
       carNumber: "01 | A 777 BB",
       phone: "+998 (90) 123-45-67",
-      image: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=300&q=80",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/3lpi1gfjm0uq1-UZ/image",
       experience: "5 yil",
       description: "Toshkent shahar bo‘ylab 24/7 tezkor xizmat. Har qanday yengil avtomobil va jip variantlarini xavfsiz yuklash va tashish kafolatlanadi."
     },
@@ -36,7 +49,7 @@ export default function MyTurn() {
       car: "Isuzu NPR82 (Oq)",
       carNumber: "01 | Z 999 ZZ",
       phone: "+998 (93) 987-65-43",
-      image: "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?auto=format&fit=crop&w=300&q=80",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/dsq25661rzp5-UZ/image",
       experience: "7 yil",
       description: "Og‘ir vazndagi mikroavtobus va krossoverlarni ham tashiydi. Maxsus gidravlik platformaga ega."
     },
@@ -46,7 +59,7 @@ export default function MyTurn() {
       car: "Gazelle Next (Ko‘k)",
       carNumber: "10 | X 555 OA",
       phone: "+998 (99) 444-33-22",
-      image: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=300&q=80",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/9j66qa8lxojh1-UZ/image;s=750x1000",
       experience: "3 yil",
       description: "Arzon va qulay narxlarda shahar ichi va viloyatga chiqish xizmati. Shuningdek, g‘ildirak qulflanib qolgan holatlarda ham yordam beradi."
     },
@@ -56,7 +69,7 @@ export default function MyTurn() {
       car: "Mercedes-Benz Atego",
       carNumber: "01 | M 010 AM",
       phone: "+998 (95) 770-11-22",
-      image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=300&q=80",
+      image: "https://166.az/uploads/service/2ae7886363cdcb783e1b0dd7ac255bee.jpg?v=1674804586",
       experience: "10 yil",
       description: "Professional darajadagi uzun platformali evakuator. Sport Karlar va past osilgan (lowrider) mashinalarni beziyon yuklaydi."
     },
@@ -66,28 +79,20 @@ export default function MyTurn() {
       car: "Foton Ollin (Kumushrang)",
       carNumber: "01 | O 234 EE",
       phone: "+998 (88) 150-50-50",
-      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80",
+      image: "https://frankfurt.apollo.olxcdn.com/v1/files/ibkug1gzj7r23-UZ/image;s=750x1000",
       experience: "4 yil",
       description: "Toshkent viloyati va shahar atrofi hududlariga tezkor yetib borish imkoniyati. Narxlar kelishilgan holda."
     }
   ];
 
-  // SMS yuborish funksiyasi (Faqat bir marta ishlashi uchun localStorage orqali tekshiriladi)
+  // SMS yuborish funksiyasi
   const sendReminderSMS = async (station) => {
     const isSmsSent = localStorage.getItem("smsSent_5min");
-    if (isSmsSent === "true") return; // Agar oldin yuborilgan bo'lsa, qayta ishlamaydi
+    if (isSmsSent === "true") return;
 
     try {
       console.log(`SMS YUBORILDI: "Sizning 5 minut vaqtingiz qoldi tezroq ${station} zapravkamizga yetib keling"`);
-
-      /* Real loyihada API so'rov quyidagicha bo'ladi:
-      await axios.post("https://api.eskiz.uz/api/message/sms/send", {
-        mobile_phone: "998901234567",
-        message: `Sizning 5 minut vaqtingiz qoldi tezroq ${station} zapravkamizga yetib keling`
-      });
-      */
-
-      localStorage.setItem("smsSent_5min", "true"); // Bayroqni saqlash
+      localStorage.setItem("smsSent_5min", "true");
     } catch (error) {
       console.error("SMS yuborishda xatolik:", error);
     }
@@ -106,10 +111,9 @@ export default function MyTurn() {
       const booking = JSON.parse(savedBooking);
       setActiveBooking(booking);
 
-      // Foydalanuvchi chiqib ketsa ham vaqt o'zgarmasligi uchun targetTime xotiradan tekshiriladi
       let targetTime = localStorage.getItem("myBookingTargetTime");
       if (!targetTime) {
-        const durationMin = 30; // 30 daqiqalik taymer
+        const durationMin = 30;
         targetTime = (booking.bookedAt || Date.now()) + durationMin * 60 * 1000;
         localStorage.setItem("myBookingTargetTime", targetTime);
       } else {
@@ -123,7 +127,6 @@ export default function MyTurn() {
         const now = Date.now();
         const difference = targetTime - now;
 
-        // Odamlar soni vaqtga mutanosib ravishda kamayadi
         const bookedTime = booking.bookedAt || (targetTime - 30 * 60 * 1000);
         const minutesElapsed = Math.floor((now - bookedTime) / (60 * 1000));
         const currentPeople = Math.max(12 - Math.floor(minutesElapsed / 2), 0);
@@ -138,7 +141,6 @@ export default function MyTurn() {
           const seconds = Math.floor((difference % (1000 * 60)) / 1000);
           setTimeLeft(`${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`);
 
-          // Toppa-to'g'ri 5 daqiqa (yoki undan kamroq) qolganda SMS yuborish mantiqi triggering
           if (minutes === 5 && seconds === 0) {
             sendReminderSMS(booking.stationName);
           }
@@ -152,13 +154,16 @@ export default function MyTurn() {
   const handleFinalAction = (statusText) => {
     if (!activeBooking) return;
 
+    const totalSum = calculateTotalSum(activeBooking);
+
     const newTx = {
       id: Date.now(),
       date: new Date().toLocaleDateString("en-US", { day: 'numeric', month: 'short', year: 'numeric' }),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       fuel: activeBooking.fuel,
-      volume: statusText === "BAJARILDI" ? "45 L" : "0 L",
-      price: activeBooking.price,
+      volume: activeBooking.volume,
+      // Tarixga umumiy hisoblangan summani yozish (agar custom bo'lsa 1 litr narxi qoladi yoki 0 bo'ladi)
+      price: totalSum ? totalSum : activeBooking.price, 
       status: statusText
     };
 
@@ -166,10 +171,9 @@ export default function MyTurn() {
     setHistory(updatedHistory);
     localStorage.setItem("bookingHistory", JSON.stringify(updatedHistory));
 
-    // Barcha vaqtinchalik xotiralarni tozalash
     localStorage.removeItem("myBooking");
     localStorage.removeItem("myBookingTargetTime");
-    localStorage.removeItem("smsSent_5min"); // SMS holatini ham tozalash
+    localStorage.removeItem("smsSent_5min");
     setActiveBooking(null);
     setIsTimeUp(false);
   };
@@ -206,7 +210,19 @@ export default function MyTurn() {
                 {activeBooking && (
                   <div className="mt-4 space-y-2 rounded-xl bg-white/10 p-4 text-sm text-blue-50 backdrop-blur-sm">
                     <p><span className="opacity-75">Zapravka:</span> <strong>{activeBooking.stationName}</strong></p>
-                    <p><span className="opacity-75">Yoqilg‘i:</span> <span className="font-bold text-yellow-300">{activeBooking.fuel}</span></p>
+                    <p><span className="opacity-75">Mashina:</span> <span className="font-bold text-orange-300">{activeBooking.carName}</span></p>
+                    <p><span className="opacity-75">Yoqilg‘i va Hajm:</span> <span className="font-bold text-yellow-300">{activeBooking.fuel} — {activeBooking.volume}</span></p>
+                    
+                    {/* --- YANGI: Hisoblangan umumiy summani ko'rsatish --- */}
+                    <p>
+                      <span className="opacity-75">Taxminiy Summa:</span>{" "}
+                      <span className="font-bold text-emerald-300">
+                        {calculateTotalSum(activeBooking) 
+                          ? `${calculateTotalSum(activeBooking).toLocaleString()} so‘m` 
+                          : "Borib hisoblanadi (Hajm belgilanmagan)"}
+                      </span>
+                    </p>
+                    
                     <p><span className="opacity-75">Kelish soati:</span> <span className="text-emerald-300 font-bold bg-emerald-950/40 px-2 py-0.5 rounded">{targetTimeStr}</span></p>
 
                     <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
@@ -348,7 +364,6 @@ export default function MyTurn() {
 
         </div>
 
-        {/* MODAL */}
         {selectedEvakuator && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950 border border-slate-200 dark:border-slate-800 animate-zoom-in">
