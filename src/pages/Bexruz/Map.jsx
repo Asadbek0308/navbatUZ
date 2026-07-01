@@ -164,7 +164,6 @@ export default function Map() {
   }
 
   return (
-    <AccessGuard>
       <div className="flex h-screen w-full bg-slate-900">
       {/* MAP */}
       <div className="flex-1">
@@ -317,6 +316,5 @@ export default function Map() {
         )}
       </div>
     </div>
-    </AccessGuard>
   );
 } 
