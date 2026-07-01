@@ -12,7 +12,27 @@ import {
   ChevronRight, 
   Download 
 } from 'lucide-react';
-import Rating from './Rating'; // Yuqoridagi Rating komponentingiz
+import { Star, StarHalf } from 'lucide-react';
+
+// Star rating component
+function Rating({ value = 0, max = 5 }) {
+  const stars = [];
+  const fullStars = Math.floor(value);
+  const hasHalf = value - fullStars >= 0.25 && value - fullStars < 0.75;
+  const roundedFull = value - fullStars >= 0.75 ? fullStars + 1 : fullStars;
+
+  for (let i = 0; i < max; i++) {
+    if (i < roundedFull) {
+      stars.push(<Star key={i} className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />);
+    } else if (i === fullStars && hasHalf) {
+      stars.push(<StarHalf key={i} className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />);
+    } else {
+      stars.push(<Star key={i} className="w-3.5 h-3.5 text-slate-300" />);
+    }
+  }
+
+  return <div className="flex items-center gap-0.5">{stars}</div>;
+}
 
 export default function Dashboard() {
   // Rasmdagi aniq ishchilar va ma'lumotlar
@@ -24,13 +44,12 @@ export default function Dashboard() {
     { rank: 5, name: "Elena Volkova", role: null, fuel: "6,120 L", revenue: "$8,320", rating: 4.7, hasAvatar: false },
   ];
 
-  // Grafik ustunlari (Dushanbadan Yakshanbagacha)
   const weeklySales = [
     { day: "M", height: "h-16", current: false },
     { day: "T", height: "h-20", current: false },
     { day: "W", height: "h-14", current: false },
     { day: "T", height: "h-24", current: false },
-    { day: "F", height: "h-22", current: true }, // Juma kuni yashil rangda
+    { day: "F", height: "h-22", current: true },
     { day: "S", height: "h-26", current: false },
     { day: "S", height: "h-12", current: false },
   ];
@@ -39,10 +58,8 @@ export default function Dashboard() {
     <div className="bg-slate-50 min-h-screen text-slate-800 p-4 md:p-6 font-sans flex flex-col justify-between">
       <div className="max-w-7xl mx-auto w-full space-y-6">
         
-        {/* 1. Yuqori qism: Statistika kartalari */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* Total Fuel */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Fuel Sold Today</p>
@@ -52,7 +69,6 @@ export default function Dashboard() {
             <span className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><Fuel className="w-5 h-5" /></span>
           </div>
 
-          {/* Total Revenue */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
@@ -62,7 +78,6 @@ export default function Dashboard() {
             <span className="p-3 bg-blue-50 text-blue-600 rounded-xl"><DollarSign className="w-5 h-5" /></span>
           </div>
 
-          {/* Best Employee */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Best Employee</p>
@@ -77,7 +92,6 @@ export default function Dashboard() {
             <span className="p-3 bg-yellow-50 text-yellow-600 rounded-xl"><Award className="w-5 h-5" /></span>
           </div>
 
-          {/* Satisfaction */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Satisfaction</p>
@@ -90,10 +104,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 2. Asosiy blok */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Chap tomon: Top 10 Employees Jadvali */}
           <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-black text-slate-800">Top 10 Employees</h3>
@@ -125,7 +137,6 @@ export default function Dashboard() {
                             {emp.initial}
                           </div>
                         ) : (
-                          // Rasmda 4 va 5-ishchilarning avatarlari va rollari yo'q ekan, joy tashlab ketildi
                           <div className="w-8" /> 
                         )}
                         <div>
@@ -136,7 +147,6 @@ export default function Dashboard() {
                       <td className="py-3.5 text-right font-bold text-emerald-600">{emp.fuel}</td>
                       <td className="py-3.5 text-right font-semibold text-slate-700">{emp.revenue}</td>
                       <td className="py-3.5 text-right">
-                        {/* Siz yaratgan yangi xatosiz ishlaydigan Rating komponenti */}
                         <Rating value={emp.rating} />
                       </td>
                     </tr>
@@ -146,10 +156,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* O'ng tomon: Grafika, Yutuqlar va Vazifalar */}
           <div className="space-y-6">
             
-            {/* Weekly Fuel Sales */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <h4 className="font-bold text-slate-800 text-sm">Weekly Fuel Sales</h4>
@@ -168,7 +176,6 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* Recent Achievements */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
               <h4 className="font-bold text-slate-800 text-sm mb-2">Recent Achievements</h4>
               
@@ -197,7 +204,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Management Tasks */}
             <div className="bg-blue-50/60 p-5 rounded-2xl border border-blue-100/50 space-y-2">
               <h4 className="font-bold text-slate-800 text-sm mb-3">Management Tasks</h4>
               <button className="w-full flex justify-between items-center bg-white p-3 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition shadow-sm">
@@ -214,7 +220,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3. Footer */}
       <footer className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-400 pt-6 border-t border-slate-200/60 mt-10 gap-2">
         <p><span className="text-emerald-700 font-bold">Ishonch Fuel Systems</span> © 2024 All rights reserved.</p>
         <div className="flex gap-4 font-medium">
